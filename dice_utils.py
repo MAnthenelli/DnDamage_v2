@@ -163,6 +163,45 @@ def double_dice_in_expression(expression):
 
     return convolve_pmfs(final_dice_pmf, {constant: 1.0})
 
+def get_doubled_dice_string(expression):
+    """Takes a dice expression, doubles only the positive dice, and returns the new string."""
+    dice_parts, constant = _get_dice_and_constants(expression)
+    
+    new_parts = []
+    for op, term in dice_parts:
+        if op == '+':
+            # Double the number of dice
+            doubled_term = re.sub(r'(\d+)', lambda m: str(int(m.group(1)) * 2), term, 1)
+            new_parts.append(f"+{doubled_term}")
+        else: # op == '-'
+            new_parts.append(f"-{term}")
+
+    if constant != 0:
+        new_parts.append(f"{constant:+}")
+        
+    # Join and clean up
+    result = "".join(new_parts).lstrip('+')
+    if not result:
+        return str(constant)
+    return result
+
+def floor_pmf_at_zero(pmf):
+    """Ensures no outcomes in the PMF are below zero by consolidating them into the 0 outcome."""
+    new_pmf = {}
+    zero_prob = 0
+    for outcome, prob in pmf.items():
+        if outcome < 0:
+            zero_prob += prob
+        else:
+            new_pmf[outcome] = new_pmf.get(outcome, 0) + prob
+    if zero_prob > 0:
+        new_pmf[0] = new_pmf.get(0, 0) + zero_prob
+    # Ensure 0 is in the pmf if it's empty otherwise, to avoid issues down the line
+    if not new_pmf:
+        return {0: 1.0}
+    return new_pmf
+
+
 # --- Mitigation Functions ---
 def apply_resistance_vulnerability(pmf, resistance_type):
     """Applies resistance or vulnerability to a PMF."""
